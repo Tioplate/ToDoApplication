@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.todo.todoapplication.mapper.ToDoMapper">
+
+    <insert id="insertTodo" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO todos (user_id, title, due_date, priority, is_completed, created_at)
+        VALUES (#{userId}, #{title}, #{dueDate}, #{priority}, #{isCompleted}, NOW())
+    </insert>
+
+    <select id="selectTodosByUserId" resultType="com.todo.todoapplication.entity.ToDo">
+        SELECT id, user_id, title, due_date, priority, is_completed, created_at
+        FROM todos
+        WHERE user_id = #{userId}
+        <choose>
+            <when test="orderType == 'dueDate'">
+                ORDER BY due_date ASC  </when>
+            <when test="orderType == 'priority'">
+                ORDER BY priority DESC, due_date ASC </when>
+            <otherwise>
+                ORDER BY created_at DESC </otherwise>
+        </choose>
+    </select>
+
+    <update id="updateTodo">
+        UPDATE todos
+        <set>
+            <if test="title != null and title != ''">title = #{title},</if>
+            <if test="dueDate != null">due_date = #{dueDate},</if>
+            <if test="priority != null">priority = #{priority},</if>
+            <if test="isCompleted != null">is_completed = #{isCompleted},</if>
+        </set>
+        WHERE id = #{id} AND user_id = #{userId}
+    </update>
+
+    <delete id="deleteTodoById">
+        DELETE FROM todos
+        WHERE id = #{id} AND user_id = #{userId}
+    </delete>
+
+</mapper>
