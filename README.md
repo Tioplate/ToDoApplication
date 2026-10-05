@@ -1,66 +1,144 @@
 # ToDo Application
 
-シンプルで使いやすいタスク管理アプリケーションです。Vue 3（フロントエンド）と Spring Boot（バックエンド）を採用し、Docker 環境を利用して簡単にシステム一式を立ち上げることができます。
+Vue 3 と Spring Boot で構築したフルスタックのタスク管理 Web アプリケーションです。
+ユーザー認証、ToDo の CRUD、期限・優先度・完了状態の管理に加え、Docker Compose を使ってフロントエンド、バックエンド、MySQL、Redis をまとめて起動できる構成にしています。
 
-## 🛠 技術スタック
+## Features
 
-- **フロントエンド**: Vue 3, Element Plus, Vue Router
-- **バックエンド**: Java 21, Spring Boot, Spring Security (JWT), MyBatis
-- **データベース & キャッシュ**: MySQL 8.0, Redis
-- **インフラ**: Docker, Docker Compose, Nginx
+- ユーザー登録 / ログイン / ログアウト
+- JWT を利用した認証
+- Redis を利用したログイン状態の管理
+- ユーザー名・パスワードの更新
+- ToDo の作成・編集・削除
+- 期限の設定
+- 優先度（高・中・低）の設定
+- 完了 / 未完了の切り替え
+- 作成日時・期限・優先度による並び替え
 
----
+## Tech Stack
 
-## 🚀 起動方法 (How to run)
+### Frontend
+- Vue 3
+- Vue Router
+- Element Plus
+- Vite
 
-本プロジェクトは Docker Compose を利用して、必要なサーバー（フロントエンド、バックエンド、MySQL、Redis）をすべて一括で構築・起動できるようになっています。ローカルに Node.js や Java などの開発環境をインストールする必要はありません。
+### Backend
+- Java 21
+- Spring Boot
+- Spring Security
+- JWT (JJWT)
+- MyBatis
 
-### 前提条件
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) 等がインストールされ、起動していること。
-- `docker-compose` コマンドが利用可能であること。
+### Database / Infrastructure
+- MySQL 8
+- Redis 7
+- Docker / Docker Compose
+- Nginx
 
-### 起動手順
+## Architecture
 
-1. **プロジェクトのルートディレクトリに移動**
-   ターミナル（Windowsの場合はコマンドプロンプトやPowerShell、Mac/Linuxの場合はTerminal）を開き、`docker-compose.yml` が存在するディレクトリに移動します。
-
-2. **Docker コンテナのビルドと起動**
-   以下のコマンドを実行します。
-   ```bash
-   docker-compose up -d --build
-   ```
-   *※ 初回実行時は、バックエンドのパッケージダウンロードやパッケージのインストールが行われるため、数分程度時間がかかります。*
-   *※ コンテナ起動時に同梱の `createtable.sql` によって自動的に MySQL データベースの初期化が行われます。*
-
-3. **アプリケーションへのアクセス**
-   コンテナの起動が確認できたら、ブラウザを開き以下の URL にアクセスしてください。
-   - **Frontend URL**: [http://localhost](http://localhost)
-
-   *※ もしローカルでのデプロイや起動がうまくいかない場合、または手軽に動作を確認したい場合は、以下の URL から稼働中の環境にアクセスすることも可能です：*
-   - **デプロイ済み環境**: [http://161.33.213.143/](http://161.33.213.143/)
-
----
-
-## 🛑 コンテナの停止方法
-
-アプリケーションの実行を停止し、コンテナを削除する場合は、同一ディレクトリで以下のコマンドを実行します。
-
-```bash
-docker-compose down
+```text
+Browser
+   |
+   v
+Nginx
+   |-- Vue 3 static files
+   |
+   `-- /api/*
+         |
+         v
+    Spring Boot
+      |      |
+      v      v
+    MySQL   Redis
 ```
 
-*※ データベースのデータ（Todoやユーザー情報）を完全にリセットしたい場合は、オプション `-v` を付けて `docker-compose down -v` を実行してください。*
+Nginx が Vue の静的ファイルを配信し、`/api/` へのリクエストを Spring Boot にリバースプロキシします。バックエンドでは MySQL にユーザー・ToDo データを保存し、Redis を認証トークンの状態管理に利用しています。
 
----
+## Implementation Highlights
 
-## 💡 主な機能
+- Spring Security と JWT を組み合わせた認証処理
+- パスワードをハッシュ化してデータベースに保存
+- Redis にログイン中のトークンを保持し、ログアウト時に無効化
+- Controller / Service / Mapper に分けたバックエンド構成
+- MyBatis XML Mapper を利用したデータアクセス
+- Docker Compose による複数サービスの一括起動
+- Nginx による SPA 配信と API リバースプロキシ
+- 認証情報や JWT Secret を環境変数から注入
 
-1. **アカウント機能**:
-   - サインアップ（ユーザー名重複チェック付き）、ログイン、ログアウト。
-   - ユーザー名・パスワードなどのプロフィール変更機能。
-2. **タスク（ToDo）管理機能**:
-   - タスクの新規追加・編集・削除。
-   - 期限（DueDate）の設定。
-   - 優先度（高・中・低）の設定。
-   - 完了・未完了のステータス切り替え。
-   - 表示順の並び替え（作成日時順、期限順、優先度順）。
+## Project Structure
+
+```text
+.
+├── src/                       # Spring Boot backend
+│   └── main/
+│       ├── java/              # Controller / Service / Mapper / Security
+│       └── resources/         # application.properties / MyBatis XML
+├── frontend/                  # Vue 3 frontend
+│   ├── src/
+│   └── nginx.conf
+├── createtable.sql            # MySQL initialization
+├── Dockerfile                 # Backend image
+├── docker-compose.yml
+└── .env.example
+```
+
+## Run with Docker Compose
+
+### 1. Prepare environment variables
+
+macOS / Linux:
+
+```bash
+cp .env.example .env
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+`.env` の `JWT_SECRET` は 32 文字以上のランダムな値に変更してください。必要に応じて MySQL のパスワードも変更してください。
+
+### 2. Build and start
+
+```bash
+docker compose up -d --build
+```
+
+起動後、ブラウザから以下にアクセスできます。
+
+```text
+http://localhost
+```
+
+Docker Compose は以下のサービスを起動します。
+
+```text
+Frontend : Nginx + Vue
+Backend  : Spring Boot
+Database : MySQL
+Cache    : Redis
+```
+
+### 3. Stop
+
+```bash
+docker compose down
+```
+
+データベースのボリュームも削除して初期化する場合：
+
+```bash
+docker compose down -v
+```
+
+## Security Notes
+
+実際のデータベース認証情報や JWT Secret はリポジトリに含めず、環境変数から設定する構成にしています。`.env` は Git の追跡対象外です。
+
+## Author
+
+Yuren Chen
